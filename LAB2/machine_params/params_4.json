@@ -1,0 +1,203 @@
+{
+    "q0": {
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "a": {
+            "change": false,
+            "head": "R",
+            "next": "q1"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "c": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        }
+    },
+    "q1": {
+        "a": {
+            "change": false,
+            "head": "R",
+            "next": "q5"
+        },
+        "b": {
+            "change": true,
+            "head": "R",
+            "next": "q2"
+        },
+        "c": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        }
+    },
+    "q2": {
+        "a": {
+            "change": false,
+            "head": "R",
+            "next": "q3"
+        },
+        "b": {
+            "change": false,
+            "head": "R",
+            "next": "q2"
+        },
+        "c": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        },
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        }
+    },
+    "q3": {
+        " ": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        },
+        "a": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "c": {
+            "change": true,
+            "head": "L",
+            "next": "q6"
+        },
+        "C": {
+            "change": false,
+            "head": "R",
+            "next": "q3"
+        }
+    },
+    "q4": {
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qa"
+        },
+        "a": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "c": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "C": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        },
+        "B": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        }
+    },
+    "q5": {
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "a": {
+            "change": false,
+            "head": "R",
+            "next": "q4"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "c": {
+            "change": true,
+            "head": "L",
+            "next": "qr"
+        },
+        "C": {
+            "change": false,
+            "head": "R",
+            "next": "q5"
+        }
+    },
+    "q6": {
+        " ": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "a": {
+            "change": false,
+            "head": "L",
+            "next": "q7"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "c": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "C": {
+            "change": false,
+            "head": "L",
+            "next": "q6"
+        }
+    },
+    "q7": {
+        " ": {
+            "change": false,
+            "head": "R",
+            "next": "qr"
+        },
+        "b": {
+            "change": false,
+            "head": "L",
+            "next": "q7"
+        },
+        "c": {
+            "change": false,
+            "head": "L",
+            "next": "qr"
+        },
+        "B": {
+            "change": false,
+            "head": "R",
+            "next": "q1"
+        }
+    }
+}
