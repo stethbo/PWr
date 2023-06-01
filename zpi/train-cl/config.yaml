@@ -1,0 +1,11 @@
+seed: 42
+datafile: cleared_samsung_12k.csv
+model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+max_seq_length: 64
+epochs: 4
+batch_size: 16
+warmup_steps: 1000
+use_amp: true
+output_model_name: fine_tuned_cl_mpnet
+checkpoint_dir: /models/checkpoints
+checkpoint_save_steps: 185

@@ -1,0 +1,4 @@
+# if conda installed
+pip3 install numpy pandas torch sentence-transformers pyyaml
+# if by conda
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
