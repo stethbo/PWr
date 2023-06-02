@@ -42,7 +42,9 @@ logger.info('All configuration variables loaded successfully')
 
 random.seed(SEED)
 
-def main():
+
+
+def train_model(model_name):
     logger.info(f'Checkpoints directory exists: {os.path.exists(CHECKPOINTS_DIR)}')
     try:
         sentences = pd.read_csv(DATA_FILE)
@@ -61,40 +63,44 @@ def main():
     logger.info(f'Creating torch dataset completed')
 
 
+
+    word_embedding_model = models.Transformer(model_name, max_seq_length=MAX_SEQ_LENGTH)
+    logger.info('Word embedding model created successfully')
+
+    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
+    logger.info('Pooling model created successfully')
+
+
+
+    model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+    logger.info('Sentence Transformer model for CL created successfully')
+    train_loss = losses.MultipleNegativesRankingLoss(model)
+    logger.info(f'Train loss set properly')
+
+    logger.info(f'calling model.fit() on {model_name}')
+
+    model.fit(
+        train_objectives=[(train_dataloader, train_loss)],
+        epochs=EPOCHS,
+        show_progress_bar=True,
+        warmup_steps=WARMAP_STEPS,
+        use_amp=USE_AMP,
+        checkpoint_path=CHECKPOINTS_DIR,
+        checkpoint_save_steps=CHECKPOINT_SAVE_STEPS,
+    )
+
+    logger.info(f'TRAINING OF {model_name} ENDED SUCCESSFULLY :D')
+    model.save(OUTPUT_MODEL_NAME + model_name)
+    logger.info(f'Fine tuned model {OUTPUT_MODEL_NAME + model_name} saved successfully')
+
+if __name__ == '__main__':
     model_names = [
         'sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
         'sentence-transformers/distiluse-base-multilingual-cased-v1',
     ]
 
-    for model_name in model_names:
-        word_embedding_model = models.Transformer(model_name, max_seq_length=MAX_SEQ_LENGTH)
-        logger.info('Word embedding model created successfully')
-
-        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-        logger.info('Pooling model created successfully')
-
-
-
-        model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-        logger.info('Sentence Transformer model for CL created successfully')
-        train_loss = losses.MultipleNegativesRankingLoss(model)
-        logger.info(f'Train loss set properly')
-
-        logger.info(f'calling model.fit() on {model_name}')
-
-        # model.fit(
-        #     train_objectives=[(train_dataloader, train_loss)],
-        #     epochs=EPOCHS,
-        #     show_progress_bar=True,
-        #     warmup_steps=WARMAP_STEPS,
-        #     use_amp=USE_AMP,
-        #     checkpoint_path='/models',
-        #     checkpoint_save_steps=16,
-        # )
-
-        logger.info(f'TRAINING OF {model_name} ENDED SUCCESSFULLY :D')
-        model.save(OUTPUT_MODEL_NAME + model_name)
-        logger.info(f'Fine tuned model {OUTPUT_MODEL_NAME + model_name} saved successfully')
-
-if __name__ == '__main__':
-    main()
+    for model in model_names:
+        try:
+            train_model(model)
+        except Exception as e:
+            logger.error(f'Error while training model {model}: {e}')
