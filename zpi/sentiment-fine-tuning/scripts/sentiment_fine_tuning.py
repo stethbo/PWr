@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     training_args = TrainingArguments(
         output_dir                  = "./sentiment-analysis",
-        num_train_epochs            = 1,
+        num_train_epochs            = 24,
         per_device_train_batch_size = 128,
         per_device_eval_batch_size  = 64,
         warmup_steps                = 500,
