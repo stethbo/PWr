@@ -10,7 +10,9 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = 'xlm-roberta-base'
-DATA_PATH = '/home/stefan/PWr/ZPI/narwos-nlp/files/imbd_movie_reviews/MovieReviewTrainingDatabase.csv'
+DATA_PATH = '/home/stefan/PWr/uni/PWr/zpi/sentiment-fine-tuning/data/data_labeled_remapped.xlsx'
+TEXT_COLUMN = 'content'
+LABEL_COLUMN = 'label'
 SPLIT = 0.8
 
 
@@ -47,13 +49,22 @@ class MyDataset(torch.utils.data.Dataset):
         }
 
 
+def read_data(path):
+    if path.endswith('.csv'):
+        df = pd.read_csv(path)
+    elif path.endswith('.xlsx'):
+        df = pd.read_excel(path)
+    else:
+        raise Exception('Unsupported file format')
+    return df
+
 def convert_sentiment(sentiment):
     return 1 if sentiment == 'Positive' else 0
 
 
 def cleanup_text(text):
     # Lowercase the text
-    text = text.lower()
+    text = str(text).lower()
     
     # Remove newlines
     text = re.sub(r'\n+', ' ', text)
@@ -87,29 +98,30 @@ def compute_metrics(pred):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv(DATA_PATH)
+    df = read_data(DATA_PATH)
     dataset = pd.DataFrame()
-    dataset['review'] = df['review'].apply(cleanup_text)
-    dataset['label'] = df['sentiment'].apply(convert_sentiment)
-
+    dataset['text'] = df[TEXT_COLUMN].apply(cleanup_text)
+    dataset['label'] = df[TEXT_COLUMN].apply(convert_sentiment)
+    dataset.dropna(inplace=True)
 
     train_set = dataset[:int(len(dataset) * SPLIT)]
     test_set = dataset[int(len(dataset) * SPLIT):]
-    print(len(train_set), len(test_set))
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
     train_dataset = MyDataset(
-        reviews    = train_set.review.tolist(),
+        reviews    = train_set.text.tolist(),
         sentiments = train_set.label.tolist(),
         tokenizer  = tokenizer,
     )
 
     test_dataset = MyDataset(
-        reviews    = test_set.review.tolist(),
+        reviews    = test_set.text.tolist(),
         sentiments = test_set.label.tolist(),
         tokenizer  = tokenizer,
     )
+    logger.info(f'Dataset created successfully, train size: {len(train_dataset)},\
+                test size: {len(test_dataset)}')
 
 
     # Create DataLoader for train/validation sets.
@@ -130,17 +142,18 @@ if __name__ == "__main__":
     valid_data = next(iter(valid_set_dataloader))
 
     # Print the output sizes.
-    print( train_data["input_ids"].size(), valid_data["input_ids"].size() )
+    logger.info(f'Sizes of taining data batches: {train_data["input_ids"].size()}, {valid_data["input_ids"].size()}')
 
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
 
     for i, (name, param) in enumerate(model.named_parameters()):
         if name.startswith('classifier'):
-            print(f'Classifier layer: {name}, number: {i}')
+            logger.info(f'Classifier layer: {name}, number: {i}')
             param.requires_grad = True
         else:
             param.requires_grad = False
 
+    logger.info(f'Model set up successfully: {model.name_or_path}')
 
     training_args = TrainingArguments(
         output_dir                  = "./sentiment-analysis",
@@ -152,6 +165,7 @@ if __name__ == "__main__":
         save_strategy               = "epoch",
         evaluation_strategy         = "steps"
     )
+    logger.info(f'Training arguments set up successfully.')
 
     trainer = Trainer(
         model           = model,
@@ -160,5 +174,7 @@ if __name__ == "__main__":
         eval_dataset    = test_dataset,
         compute_metrics = compute_metrics
     )
+    logger.info('Trainer set up successfully')
 
-    trainer.train()
+    logger.info('Training started...')
+    # trainer.train()
