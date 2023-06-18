@@ -33,10 +33,10 @@ class MyDataset(torch.utils.data.Dataset):
         self.max_len    = tokenizer.model_max_length
   
     def __len__(self):
-        return len(self.reviews)
+        return len(self.contents)
   
     def __getitem__(self, index):
-        content = str(self.reviews[index])
+        content = str(self.contents[index])
         label = self.labels[index]
 
         encoded_review = self.tokenizer.encode_plus(
@@ -53,7 +53,7 @@ class MyDataset(torch.utils.data.Dataset):
         return {
             'input_ids': encoded_review['input_ids'][0],
             'attention_mask': encoded_review['attention_mask'][0],
-            'labels': torch.eye(NUM_LABELS)[label]
+            'labels': torch.eye(NUM_LABELS)[label - 1]
         }
 
 
@@ -105,11 +105,12 @@ def compute_metrics(pred):
 
 
 if __name__ == "__main__":
-    df = read_data(DATA_PATH)
-    dataset = pd.DataFrame()
-    dataset['text'] = df[TEXT_COLUMN].apply(cleanup_text)
-    dataset['label'] = df[TEXT_COLUMN].apply(convert_sentiment)
-    
+    dataset = read_data(DATA_PATH)
+    dataset[TEXT_COLUMN] = dataset[TEXT_COLUMN].apply(cleanup_text)
+    dataset[LABEL_COLUMN] = dataset[LABEL_COLUMN].apply(lambda x: x - 1)
+
+    logger.info(f'Dataset loaded successfully, sample records:')
+    logger.info(f'\n{dataset.head()}\n')
     dataset.dropna(inplace=True)
 
     train_set = dataset[:int(len(dataset) * SPLIT)]
@@ -118,18 +119,18 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
     train_dataset = MyDataset(
-        reviews    = train_set.text.tolist(),
-        sentiments = train_set.label.tolist(),
+        contents    = train_set[TEXT_COLUMN].tolist(),
+        labels = train_set[LABEL_COLUMN].tolist(),
         tokenizer  = tokenizer,
     )
 
     test_dataset = MyDataset(
-        reviews    = test_set.text.tolist(),
-        sentiments = test_set.label.tolist(),
+        contents    = test_set[TEXT_COLUMN].tolist(),
+        labels = test_set[LABEL_COLUMN].tolist(),
         tokenizer  = tokenizer,
     )
-    logger.info(f'Dataset created successfully, train size: {len(train_dataset)},\
-                test size: {len(test_dataset)}')
+    logger.info(f'Dataset created successfully!')
+    logger.info(f'train size: {len(train_dataset)}, test size: {len(test_dataset)}')
 
 
     # Create DataLoader for train/validation sets.
@@ -150,8 +151,8 @@ if __name__ == "__main__":
     valid_data = next(iter(valid_set_dataloader))
 
     # Print the output sizes.
-    logger.info(f'Sizes of taining data batches: {train_data["input_ids"].size()},\
-                 {valid_data["input_ids"].size()}')
+    logger.info(f'Sizes of taining data batches:')
+    logger.info(f'{train_data["input_ids"].size()}, {valid_data["input_ids"].size()}')
 
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME,
                                                                num_labels=NUM_LABELS)
