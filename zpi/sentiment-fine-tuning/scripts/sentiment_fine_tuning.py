@@ -1,16 +1,20 @@
 import torch
 import re
+import os
 import logging
 import pandas as pd
+
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from transformers import (AutoTokenizer, AutoModelForSequenceClassification, 
+                          Trainer, TrainingArguments, TrainerCallback)
+
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = 'xlm-roberta-base'
-DATA_PATH = '/home/stefan/PWr/uni/PWr/zpi/sentiment-fine-tuning/data/data_labeled_remapped.xlsx'
+DATA_PATH = os.path.join('data','/data_labeled_remapped.csv')
 TEXT_COLUMN = 'content'
 LABEL_COLUMN = 'label'
 NUM_LABELS = 3
@@ -21,8 +25,9 @@ EPOCHS = 24
 BATCH_SIZE = 64
 WARMPUP_STEPS = 500
 WEIGHT_DECAY = 0.01
+LEARNING_RATE = 1e-5
 OUTPUT_DIR = './sentiment_fine_tuned_models'
-
+SEQUENCE_MAX_LENGTH = 64
 
 class MyDataset(torch.utils.data.Dataset):
 
@@ -30,7 +35,7 @@ class MyDataset(torch.utils.data.Dataset):
         self.contents    = contents
         self.labels = labels
         self.tokenizer  = tokenizer
-        self.max_len    = tokenizer.model_max_length
+        self.max_len    = SEQUENCE_MAX_LENGTH
   
     def __len__(self):
         return len(self.contents)
@@ -55,6 +60,19 @@ class MyDataset(torch.utils.data.Dataset):
             'attention_mask': encoded_review['attention_mask'][0],
             'labels': torch.eye(NUM_LABELS)[label - 1]
         }
+
+
+
+class AccuracyCallback(TrainerCallback):
+    def __init__(self):
+        super().__init__()
+    
+    def on_epoch_end(self, args, state, control, **kwargs):
+        trainer = state.trainer
+        eval_results = trainer.evaluate()
+        accuracy = eval_results["accuracy"]
+        
+        logger.info(f"Epoch {trainer.state.epoch}: Accuracy = {accuracy}")
 
 
 def read_data(path):
@@ -171,6 +189,7 @@ if __name__ == "__main__":
         num_train_epochs            = EPOCHS,
         per_device_train_batch_size = 128,
         per_device_eval_batch_size  = 64,
+        learning_rate               = LEARNING_RATE,
         warmup_steps                = WARMPUP_STEPS,
         weight_decay                = WEIGHT_DECAY,
         save_strategy               = "epoch",
@@ -183,7 +202,8 @@ if __name__ == "__main__":
         args            = training_args,
         train_dataset   = train_dataset,
         eval_dataset    = test_dataset,
-        compute_metrics = compute_metrics
+        compute_metrics = compute_metrics,
+        callbacks       = [AccuracyCallback()]
     )
     logger.info('Trainer set up successfully')
 
