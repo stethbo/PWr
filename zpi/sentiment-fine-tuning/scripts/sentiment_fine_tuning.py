@@ -3,6 +3,7 @@ import re
 import os
 import logging
 import pandas as pd
+from copy import deepcopy   
 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import (AutoTokenizer, AutoModelForSequenceClassification, 
@@ -14,7 +15,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = 'xlm-roberta-base'
-DATA_PATH = os.path.join('data','/data_labeled_remapped.csv')
+DATA_PATH = os.path.join('data','data_labeled_remapped.csv')
 TEXT_COLUMN = 'content'
 LABEL_COLUMN = 'label'
 NUM_LABELS = 3
@@ -26,7 +27,8 @@ BATCH_SIZE = 64
 WARMPUP_STEPS = 500
 WEIGHT_DECAY = 0.01
 LEARNING_RATE = 1e-5
-OUTPUT_DIR = './sentiment_fine_tuned_models'
+OUTPUT_DIR = 'fine_tuned_models'
+SAVE_STEPS = 30
 SEQUENCE_MAX_LENGTH = 64
 
 class MyDataset(torch.utils.data.Dataset):
@@ -62,17 +64,18 @@ class MyDataset(torch.utils.data.Dataset):
         }
 
 
-
-class AccuracyCallback(TrainerCallback):
-    def __init__(self):
+class CustomCallback(TrainerCallback):
+    
+    def __init__(self, trainer) -> None:
         super().__init__()
+        self._trainer = trainer
     
     def on_epoch_end(self, args, state, control, **kwargs):
-        trainer = state.trainer
-        eval_results = trainer.evaluate()
-        accuracy = eval_results["accuracy"]
-        
-        logger.info(f"Epoch {trainer.state.epoch}: Accuracy = {accuracy}")
+        if control.should_evaluate:
+            control_copy = deepcopy(control)
+            self._trainer.evaluate(eval_dataset=self._trainer.train_dataset, metric_key_prefix="train")
+            logger.info(f"Epoch {state.epoch} - Training loss: {state.metrics['train_loss']}")
+            return control_copy
 
 
 def read_data(path):
@@ -192,6 +195,7 @@ if __name__ == "__main__":
         learning_rate               = LEARNING_RATE,
         warmup_steps                = WARMPUP_STEPS,
         weight_decay                = WEIGHT_DECAY,
+        save_steps                  = SAVE_STEPS,
         save_strategy               = "epoch",
         evaluation_strategy         = "steps"
     )
@@ -203,8 +207,12 @@ if __name__ == "__main__":
         train_dataset   = train_dataset,
         eval_dataset    = test_dataset,
         compute_metrics = compute_metrics,
-        callbacks       = [AccuracyCallback()]
+        callbacks       = [CustomCallback()]
     )
+
+    
+
+    trainer.add_callback(CustomCallback(trainer)) 
     logger.info('Trainer set up successfully')
 
     logger.info('Training started...')
