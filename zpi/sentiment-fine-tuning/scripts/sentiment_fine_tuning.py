@@ -8,6 +8,9 @@ from copy import deepcopy
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import (AutoTokenizer, AutoModelForSequenceClassification, 
                           Trainer, TrainingArguments, TrainerCallback)
+import warnings
+
+warnings.filterwarnings("ignore", message="Was asked to gather along dimension 0, but all", category=UserWarning)
 
 
 logging.basicConfig(level=logging.INFO,
@@ -22,13 +25,13 @@ NUM_LABELS = 3
 SPLIT = 0.8
 
 # Training arguments
-EPOCHS = 24
+EPOCHS = 500
 BATCH_SIZE = 64
 WARMPUP_STEPS = 500
 WEIGHT_DECAY = 0.01
 LEARNING_RATE = 1e-5
 OUTPUT_DIR = 'fine_tuned_models'
-SAVE_STEPS = 30
+SAVE_STEPS = 500
 SEQUENCE_MAX_LENGTH = 64
 
 class MyDataset(torch.utils.data.Dataset):
@@ -74,7 +77,7 @@ class CustomCallback(TrainerCallback):
         if control.should_evaluate:
             control_copy = deepcopy(control)
             self._trainer.evaluate(eval_dataset=self._trainer.train_dataset, metric_key_prefix="train")
-            logger.info(f"Epoch {state.epoch} - Training loss: {state.metrics['train_loss']}")
+            logger.info(f"Epoch {state.epoch} - Training accuracy: {state.metrics['train_accuracy']}")
             return control_copy
 
 
@@ -196,24 +199,32 @@ if __name__ == "__main__":
         warmup_steps                = WARMPUP_STEPS,
         weight_decay                = WEIGHT_DECAY,
         save_steps                  = SAVE_STEPS,
-        save_strategy               = "epoch",
-        evaluation_strategy         = "steps"
+        save_strategy               = "steps",
+        save_total_limit            = 10,
+        evaluation_strategy         = "steps",
+        logging_strategy            = "steps",
+        load_best_model_at_end      = True,
     )
     logger.info(f'Training arguments set up successfully.')
+    
+    eval_steps = len(test_dataset) // training_args.per_device_eval_batch_size
+    training_args.eval_steps = eval_steps
+
 
     trainer = Trainer(
         model           = model,
         args            = training_args,
         train_dataset   = train_dataset,
         eval_dataset    = test_dataset,
-        compute_metrics = compute_metrics,
-        callbacks       = [CustomCallback()]
     )
-
     
+    trainer.add_callback(CustomCallback(trainer))
 
-    trainer.add_callback(CustomCallback(trainer)) 
+   
     logger.info('Trainer set up successfully')
 
     logger.info('Training started...')
-    # trainer.train()
+    trainer.train()
+    
+    best_model_state_dict = model.state_dict()
+    torch.save(best_model_state_dict, os.path.join(OUTPUT_DIR, 'best_xlm_roberta.bin'))
