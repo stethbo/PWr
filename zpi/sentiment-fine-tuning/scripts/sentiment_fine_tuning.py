@@ -30,7 +30,7 @@ BATCH_SIZE = 64
 WARMPUP_STEPS = 500
 WEIGHT_DECAY = 0.01
 LEARNING_RATE = 1e-5
-OUTPUT_DIR = 'fine_tuned_models'
+OUTPUT_DIR = 'fine-tuned-models'
 SAVE_STEPS = 500
 SEQUENCE_MAX_LENGTH = 64
 
@@ -63,7 +63,7 @@ class MyDataset(torch.utils.data.Dataset):
         return {
             'input_ids': encoded_review['input_ids'][0],
             'attention_mask': encoded_review['attention_mask'][0],
-            'labels': torch.eye(NUM_LABELS)[label - 1]
+            'labels': torch.tensor(label, dtype=torch.long)
         }
 
 
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     logger.info('Trainer set up successfully')
 
     logger.info('Training started...')
-    trainer.train()
+    # trainer.train()
     
-    best_model_state_dict = model.state_dict()
-    torch.save(best_model_state_dict, os.path.join(OUTPUT_DIR, 'best_xlm_roberta.bin'))
+    # best_model_state_dict = model.state_dict()
+    # torch.save(best_model_state_dict, os.path.join(OUTPUT_DIR, 'best_xlm_roberta.bin'))
