@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = 'xlm-roberta-base'
-DATA_PATH = os.path.join('data','data_labeled_remapped.csv')
+DATA_PATH = os.path.join('..', 'data','data_labeled_remapped.csv')
 TEXT_COLUMN = 'content'
 LABEL_COLUMN = 'label'
 NUM_LABELS = 3
@@ -31,7 +31,7 @@ WARMPUP_STEPS = 500
 WEIGHT_DECAY = 0.01
 LEARNING_RATE = 1e-5
 OUTPUT_DIR = 'fine-tuned-models'
-SAVE_STEPS = 500
+SAVE_STEPS = 1000
 SEQUENCE_MAX_LENGTH = 64
 
 class MyDataset(torch.utils.data.Dataset):
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     logger.info('Trainer set up successfully')
 
     logger.info('Training started...')
-    # trainer.train()
+    trainer.train()
     
     # best_model_state_dict = model.state_dict()
     # torch.save(best_model_state_dict, os.path.join(OUTPUT_DIR, 'best_xlm_roberta.bin'))
